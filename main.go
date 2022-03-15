@@ -12,11 +12,13 @@ import (
 
 // <------------------------------------------------------------------------------------------------------------------------>
 // TODO: There's a weird thing where the first item in the list is pushed over an extra tab or space or something
+// ? https://github.com/gizak/termui more tui prettyness to implement
 // <------------------------------------------------------------------------------------------------------------------------>
 
 /*
 
 I really like these colors for TUI's :D
+   softblack: #222222;
    ansiBlack: #000000;
    ansiRed: #cd3131;
    ansiGreen: #0dbc79;
@@ -144,6 +146,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				} else {
 					m.selected[m.cursor] = struct{}{}
 				}
+
+			//The "d" or "delete" key will remove an item from the choices array
+			case "d", tea.KeyDelete.String():
+				if len(m.choices) > 0 {
+					m.choices = append(m.choices[:m.cursor], m.choices[m.cursor+1:]...)
+				}
+
 			// These keys should exit the program.
 			case "ctrl+c", "q":
 				return m, tea.Quit
@@ -189,30 +198,32 @@ func (m model) View() string {
 	}
 
 	if m.insertMode {
-		s += foregroundStyle.Render(fmt.Sprintf("\nEnter what you'd like to add to the list.  %s\n\n", m.textInput.View()))
+		s += foregroundStyle.Render(fmt.Sprintf("\nEnter what you'd like to add to the list.  %s\n", m.textInput.View()))
 	} else {
 
 	}
 
-	s += foregroundStyle.Render("\nTodo Items\n")
+	s += foregroundStyle.Render("\nTodo Items\n\n")
 
 	// Iterate over our choices
-	for i, choice := range m.choices {
+	if len(m.choices) > 0 {
+		for i, choice := range m.choices {
 
-		// Is the cursor pointing at this choice?
-		cursor := " " // no cursor
-		if m.cursor == i {
-			cursor = ">" // cursor!
+			// Is the cursor pointing at this choice?
+			cursor := " " // no cursor
+			if m.cursor == i {
+				cursor = ">" // cursor!
+			}
+
+			// Is this choice selected?
+			checked := " " // not selected
+			if _, ok := m.selected[i]; ok {
+				checked = "x" // selected!
+			}
+
+			// Render the row
+			s += fmt.Sprintf("\n%s [%s] %s", cursor, checked, choice)
 		}
-
-		// Is this choice selected?
-		checked := " " // not selected
-		if _, ok := m.selected[i]; ok {
-			checked = "x" // selected!
-		}
-
-		// Render the row
-		s += fmt.Sprintf("%s [%s] %s\n", cursor, checked, choice)
 	}
 
 	// The footer
@@ -222,7 +233,10 @@ func (m model) View() string {
 		s += helpStyle.Render("\nPress i or [ to switch to input mode\nPress ctrl+c or q to quit.\n")
 	}
 
-	s += helpStyle.Render("\nLast Key Press: " + m.lastPress + "\n")
+	// s += helpStyle.Render(fmt.Sprintf("\nm.choices: %#v:%+v", m.choices, m.choices))
+	// s += helpStyle.Render(fmt.Sprintf("\nSelected: %+v", m.selected))
+	s += helpStyle.Render("\nLast Key Press: " + m.lastPress)
+
 	// Send the UI for rendering
 	return s
 }
